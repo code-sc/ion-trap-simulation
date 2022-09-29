@@ -1,7 +1,7 @@
 from libcpp.vector cimport vector
 from libcpp.pair cimport pair
 
-cdef extern from "ion_trap_lib.h":
+cdef extern from "ion_trap_1d_lib.h":
     double total_energy(
         const int n,
         const vector[double]& x

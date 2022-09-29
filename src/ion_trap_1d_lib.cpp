@@ -1,6 +1,6 @@
 #define _USE_MATH_DEFINES
 
-#include <ion_trap_lib.h>
+#include "ion_trap_1d_lib.h"
 #include <cstdlib>
 #include <cmath>
 #include <vector>

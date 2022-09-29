@@ -1,4 +1,6 @@
+.DS_Store
 __pycache__
 build
-ion_trap.cpp
-ion_trap.cpython-37m-darwin.so
+ion_trap_1d.cpp
+ion_trap_3d.cpp
+*cpython-37m-darwin.so

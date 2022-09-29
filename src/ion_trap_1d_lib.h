@@ -1,5 +1,5 @@
-#ifndef ION_TRAP_LIB
-#define ION_TRAP_LIB
+#ifndef ION_TRAP_1D_LIB
+#define ION_TRAP_1D_LIB
 
 #include <cstdlib>
 #include <vector>
