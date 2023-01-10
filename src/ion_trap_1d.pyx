@@ -31,6 +31,11 @@ def sim_leapfrog(int n, double T, double dt, double M, vector[double] x_0, vecto
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+def sim_er(int n, int n_tsteps, double dt, double etol, double M, double b, vector[double] x_0, vector[double] v_0):
+    return ion_trap_1d_lib.sim_er(n, n_tsteps, dt, etol, M, b, x_0, v_0)
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def a_dless(vector[double] x, const int k):
     cdef n = x.size();
     return ion_trap_1d_lib.a_dless(n, x, k);

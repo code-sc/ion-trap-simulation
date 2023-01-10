@@ -26,6 +26,16 @@ cdef extern from "ion_trap_1d_lib.h":
         vector[double]& v_0,
         const double dx
     );
+    vector[vector[vector[double]]] sim_er(
+        const int n,
+        const int n_tsteps,
+        double dt,
+        const double etol,
+        const double M,
+        const double b,
+        vector[double]& x_0,
+        vector[double]& v_0
+    );
     double a_dless(
         const int n,
         vector[double]& x, 

@@ -30,7 +30,18 @@ std::pair<std::vector<std::vector<double> >, std::vector<std::vector<double> > >
     std::vector<double>& x_0,
     std::vector<double>& v_0,
     double dx=1e-9
-);
+    );
+
+std::vector<std::vector<std::vector<double > > > sim_er(
+    const int n,
+    const int n_tsteps,
+    double dt,
+    const double etol,
+    const double M,
+    const double b,
+    std::vector<double>& x_0,
+    std::vector<double>& v_0
+    );
 
 double a_dless(
     const int n,
