@@ -23,10 +23,10 @@ const double wz = 1.5 * 2*M_PI*1e6;
 const double laserWavelength = 369 * 1e-9;
 const double k = (2*M_PI) / laserWavelength;
 const double laserOrigin[] = {0, 0, 0};
-const double kvector[] = { k/sqrt(2), k/sqrt(2), 0 };
-const double laserWidth = 1e-5;
+const double kvector[] = { -k/sqrt(3), -k/sqrt(3), -k/sqrt(3) };
+const double laserWidth = 1e-6;
 
-const double decayRate = 20 * 1e6 * 2*M_PI;
+const double decayRate = 19.6 * 1e6 * 2*M_PI;
 const double detuning = -decayRate / 2;
 const double s = 1;
 
@@ -196,7 +196,8 @@ vector<vector<vector<double> > > sim_er(
     vector<vector<double> > a(n_tsteps + 1, vector<double>(3*n, 0));
     vector<vector<double> > t(n_tsteps + 1, vector<double>(3*n, 0));
     vector<vector<double> > err(n_tsteps + 1, vector<double>(3*n, 0));
-    double ahalf, rerr, verr, maxerr;
+    vector<double> ahalf;
+    double rerr, verr, maxerr;
 
     for (int k = 0; k < n; k++) {
         vector<double> accel = acceleration(n, r_0, v_0, k, laserWidth);
@@ -207,31 +208,45 @@ vector<vector<vector<double> > > sim_er(
         }
     }
 
+    vector<double> rhalf(3*n, 0);
+    vector<double> vhalf(3*n, 0);
     for (int i = 0; i < n_tsteps; i++) {
-        vector<double> rhalf(3*n, 0);
-        vector<double> vhalf(3*n, 0);
-        for (int k = 0; k < n; k++) {
-            for (int j = 0; j < 3; j++) {
-                rhalf[3*k+j] = r[i][3*k+j] + v[i][3*k+j]*(dt/2);
-                vhalf[3*k+j] = v[i][3*k+j] + a[i][3*k+j]*(dt/2);
+        err[i+1][0] = etol + 1;
+        while (err[i+1][0] >= etol) {
+            err[i+1][0] = 0; // reset error
+            for (int k = 0; k < n; k++) {
+                for (int j = 0; j < 3; j++) {
+                    rhalf[3*k+j] = r[i][3*k+j] + v[i][3*k+j]*(dt/2);
+                    vhalf[3*k+j] = v[i][3*k+j] + a[i][3*k+j]*(dt/2);
+                }
             }
-        }
-        for (int k = 0; k < n; k++) {
-            vector<double> ahalf = acceleration(n, rhalf, vhalf, k, laserWidth);
-            for (int j = 0; j < 3; j++) {
-                r[i+1][3*k+j] = r[i][3*k+j] + vhalf[3*k+j]*dt;
-                v[i+1][3*k+j] = v[i][3*k+j] + ahalf[j]*dt;
-                // rerr = abs( ( (v[i][3*k+j] - vhalf[3*k+j])*dt ) / 2);
-                // verr = abs( ( (a[i][3*k+j] - ahalf[j])*dt ) / 2);
-                // err[i][3*k+j] = max(rerr, verr);
+            for (int k = 0; k < n; k++) {
+                // ahalf = acceleration(n, rhalf, vhalf, k, laserWidth);
+                for (int j = 0; j < 3; j++) {                    
+                    rerr = abs( ( (v[i][3*k+j] - vhalf[3*k+j])*dt ) / 2);
+                    // verr = abs( ( (a[i][3*k+j] - ahalf[j])*dt ) / 2);
+                    err[i+1][0] = max(err[i+1][0], rerr);
+                }
+                
             }
+            if (err[i+1][0] < etol) {
+                for (int k = 0; k < n; k++) {
+                    ahalf = acceleration(n, rhalf, vhalf, k, laserWidth);
+                    for (int j = 0; j < 3; j++) {
+                        r[i+1][3*k+j] = r[i][3*k+j] + vhalf[3*k+j]*dt;
+                        v[i+1][3*k+j] = v[i][3*k+j] + ahalf[j]*dt;
+                    }
+                }
+                for (int k = 0; k < n; k++) {
+                    vector<double> accel = acceleration(n, r[i+1], v[i+1], k, laserWidth);
+                    for (int j = 0; j < 3; j++)
+                        a[i+1][3*k+j] = accel[j];
+                }
+                t[i+1][0] = t[i][0] + dt;
+            }
+            else
+                dt = 0.9 * sqrt(etol / err[i+1][0]) * dt;
         }
-        for (int k = 0; k < n; k++) {
-            vector<double> accel = acceleration(n, r[i+1], v[i+1], k, laserWidth);
-            for (int j = 0; j < 3; j++)
-                a[i+1][3*k+j] = accel[j];
-        }
-        t[i+1][0] = t[i][0] + dt;
     }
 
     vector<vector<vector<double> > > ret(5);

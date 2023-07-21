@@ -21,6 +21,16 @@ extensions = [
         language="c++",
         include_dirs=["."],
         extra_compile_args=["-w"]
+    ),
+    Extension(
+        "ion_trap_ring",
+        sources = [
+            "./ion_trap_ring.pyx",
+            "./ion_trap_ring_lib.cpp"
+        ],
+        language="c++",
+        include_dirs=["."],
+        extra_compile_args=["-w"]
     )
 ]
 
