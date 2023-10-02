@@ -16,6 +16,7 @@ const double hbar = 1.05457182e-34;
 
 // trap parameters
 const double trap_radius = (40 * 1e-6) / (2*M_PI); // 1000 * 1e-6; // m
+// const double trap_radius = 1e-3; // m
 const double wr = 9 * 2*M_PI*1e6;
 const double wz = 10 * 2*M_PI*1e6;
 
