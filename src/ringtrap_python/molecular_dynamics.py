@@ -1,6 +1,17 @@
 import numpy as np
 
 def sim_leapfrog(T, dt, r_0, v_0, ensemble_properties, potentials=[], language="python", dims=3):
+    """
+    Use the leapfrog algorithm to simulate the positions and velocity of the ions over time.
+    T (units: s) is the total duration of the simulation
+    dt (units: s) is the timestep of the simulation
+    r_0 (units: m) is the initial positions of the ions.
+    v_0 (units: m/s) is the initial velocities of the ions.
+    ensemble_properties is an object of properties that are passed to each potential in the simulation.
+    potentials is a list of potentials to include in the simulation
+    language can be either "python" or "c++"
+    dims is the number of dimensions in the system of interest (ex. can design potentials for simulation of a 1D ion chain)
+    """
     n = ensemble_properties["n"]
     n_tsteps = int(T/dt)
     r_sim = np.zeros((n_tsteps+1, dims*n))

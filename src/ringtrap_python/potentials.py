@@ -1,19 +1,37 @@
 import numpy as np
 from ..ringtrap_cython import potentials as cpotentials
 
+"""
+All positions arrays are specified in the following format
+[x_1,..., x_n, y_1,..., y_n, z_1,..., z_n], where (x_k, y_k, z_k) are the cartesian coordinates of the kth ion in the chain.
+"""
+
+# Global physical constants
 eps0 = 8.854187817e-12
 k = 1 / (4 * np.pi * eps0)
 
 class RingTrapPotential:
+    """Ring trap trapping potential. Working in the pseudopotential approximation."""
+
     def __init__(self, trap_radius, wr, wz):
+        """
+            trap_radius (units: m) is the distance from the center of the trap to the desired potential minimum around the perimeter of the trapping region.
+            wr (units: rad/s) is the angular frequency of the harmonic pseudopotential in the radial direction
+            wz (units: rad/s) is the angular frequency of the harmonic pseudopotential in the direction perpendicular to the trap
+        """
         self.trap_radius = trap_radius
         self.wr = wr
         self.wz = wz
 
     def potential(self, positions, ensemble_properties, language="python"):
+        """
+        Computes the trapping potential given the coordinates of all ions in the chain.
+        """
         if language == "python":
             n = ensemble_properties["n"]
-            r_coords = np.sqrt(positions[:n]**2 + positions[n:2*n]**2)
+            r_coords = np.sqrt(positions[:n]**2 + positions[n:2*n]**2) # Get distance from trap center
+
+            # Energy from harmonic pseudopotential
             energy = np.sum(0.5 * ensemble_properties["mass"] * ( (self.wr ** 2) * ((r_coords - self.trap_radius) ** 2) + (self.wz **2) * (positions[2*n:3*n] ** 2) ))
             return energy
         else:
@@ -25,6 +43,10 @@ class RingTrapPotential:
 
 
     def jac(self, positions, ensemble_properties, language="python"):
+        """
+        Computes the gradient vector of the trapping potential given the coordinates of all ions in the chain.
+        The returned gradient array follows the same coordinate ordering as the positions array.
+        """
         if language == "python":
             n = ensemble_properties["n"]
             grad = np.zeros(3*n)
@@ -44,13 +66,24 @@ class RingTrapPotential:
                                                       positions))
 
     def force(self, positions, ensemble_properties, language="python"):
+        """Computes the force on each ion due to this potential"""
         return -self.jac(positions, ensemble_properties, language=language)
 
     def acceleration(self, positions, ensemble_properties, language="python"):
+        """Computes the accleration on each ion due to this potential"""
         return -self.jac(positions, ensemble_properties, language=language) / ensemble_properties["mass"]
 
 class RingTrapHarmonicPotential:
+    """Second-order approximation of ring trap trapping potential in cartesian coordiantes.
+       Expansion is around the ring trap potential minimum, so first-order derivatives vanish."""
+
     def __init__(self, trap_radius, wr, wz, r0):
+        """
+            trap_radius (units: m) is the distance from the center of the trap to the desired potential minimum around the perimeter of the trapping region.
+            wr (units: rad/s) is the angular frequency of the harmonic pseudopotential in the radial direction
+            wz (units: rad/s) is the angular frequency of the harmonic pseudopotential in the direction perpendicular to the trap
+            r0 (units: m) is the equlibrium coordinates around which to expand the potential
+        """
         self.trap_radius = trap_radius
         self.wr = wr
         self.wz = wz
@@ -60,6 +93,7 @@ class RingTrapHarmonicPotential:
         x = r0[:n]
         y = r0[n:2*n]
 
+        # Compute matrix of second-order partial derivatives
         self.hess = np.zeros((3*n, 3*n))
         for i in range(n):
             self.hess[i][i] = wr * wr * (1 - ( (trap_radius * y[i] * y[i]) / ( (x[i]*x[i] + y[i]*y[i]) ** (3/2) ) ))
@@ -69,6 +103,9 @@ class RingTrapHarmonicPotential:
             self.hess[2*n+i][2*n+i] = wz*wz
     
     def potential(self, positions, ensemble_properties, language="python"):
+        """
+        Computes the harmonic approximation of the trapping potential given the coordinates of all ions in the chain.
+        """
         if language=="python":
             n = ensemble_properties["n"]
             mass = ensemble_properties["mass"]
@@ -82,6 +119,10 @@ class RingTrapHarmonicPotential:
         return None
     
     def jac(self, positions, ensemble_properties, language="python"):
+        """
+        Computes the gradient vector of the harmonic approximation of the trapping potential given the coordinates of all ions in the chain.
+        The returned gradient array follows the same coordinate ordering as the positions array.
+        """
         if language=="python":
             n = ensemble_properties["n"]
             mass = ensemble_properties["mass"]
@@ -94,16 +135,28 @@ class RingTrapHarmonicPotential:
         return None
     
     def force(self, positions, ensemble_properties, language="python"):
+        """Computes the force on each ion due to this potential"""
         return -self.jac(positions, ensemble_properties, language=language)
 
     def acceleration(self, positions, ensemble_properties, language="python"):
+        """Computes the accleration on each ion due to this potential"""
         return -self.jac(positions, ensemble_properties, language=language) / ensemble_properties["mass"]
 
 class MutualCoulombPotential:
+    """
+    Potential due to Coulomb interations among all ions in the chain.
+    """
+
     def __init__(self, cutoff_distance):
+        """
+        cutoff_distance (units: m) is the distance beyond which ion-ion Coulomb interactions are neglected for computational efficiency. 
+        """
         self.cutoff_distance = cutoff_distance # not implemented in potentials yet
 
     def potential(self, positions, ensemble_properties, language="python"):
+        """
+        Computes the potential due to the ions' Coulomb interactions given the coordinates of all ions in the chain.
+        """
         if language == "python":
             n = ensemble_properties["n"]
             energy = 0
@@ -118,6 +171,10 @@ class MutualCoulombPotential:
 
 
     def jac(self, positions, ensemble_properties, language="python"):
+        """
+        Computes the gradient vector of the Coulomb potential given the coordinates of all ions in the chain.
+        The returned gradient array follows the same coordinate ordering as the positions array.
+        """
         if language == "python":
             n = ensemble_properties["n"]
             grad = np.zeros(3*n)
@@ -134,13 +191,24 @@ class MutualCoulombPotential:
             return np.array(cpotentials.mutual_coulomb_jac(ensemble_properties["charge"], positions))
 
     def force(self, positions, ensemble_properties, language="python"):
+        """Computes the force on each ion due to this potential"""
         return -self.jac(positions, ensemble_properties, language=language)
 
     def acceleration(self, positions, ensemble_properties, language="python"):
+        """Computes the accleration on each ion due to this potential"""
         return -self.jac(positions, ensemble_properties, language=language) / ensemble_properties["mass"]
 
 class MutualCoulombHarmonicPotential:
+    """
+    Second-order approximation of potential due to Coulomb interations among all ions in the chain.
+    Expansion is around the ring trap potential minimum, so first-order derivatives vanish.
+    """
+
     def __init__(self, r0, cutoff_distance):
+        """
+        cutoff_distance (units: m) is the distance beyond which ion-ion Coulomb interactions are neglected for computational efficiency. 
+        r0 (units: m) is the equlibrium coordinates around which to expand the potential
+        """
         self.r0 = r0
         self.cutoff_distance = cutoff_distance
 
@@ -150,11 +218,14 @@ class MutualCoulombHarmonicPotential:
         x = r0[:n]
         y = r0[n:2*n]
         z = r0[2*n:3*n]
+
+        # Compute distance between each pair of ions in the chain
         for i in range(n):
             for j in range(n):
                 d2[i][j] = ((x[i] - x[j]) ** 2) + ((y[i] - y[j]) ** 2) + ((z[i] - z[j]) ** 2)   
                 self.d[i][j] = np.sqrt(d2[i][j])     
 
+        # Compute matrix of second-order partial derivatives
         self.hess = np.zeros((3*n, 3*n))
         for i in range(n):
             for j in range(n):
@@ -182,6 +253,9 @@ class MutualCoulombHarmonicPotential:
                     self.hess[i][2*n+j] = -3*k*( ((z[i] - z[j]) * (x[i] - x[j])) / (d2[i][j] ** (5/2)) )
 
     def potential(self, positions, ensemble_properties, language="python"):
+        """
+        Computes the second-order approximation of the potential due to the ions' Coulomb interactions given the coordinates of all ions in the chain.
+        """
         if language == "python":
             n = ensemble_properties["n"]
             half_charge2 = 0.5 * (ensemble_properties["charge"] ** 2)
@@ -201,6 +275,10 @@ class MutualCoulombHarmonicPotential:
             return cpotentials.mutual_coulomb_harmonic_potential(ensemble_properties["charge"], self.d, self.hess, self.r0, positions)
     
     def jac(self, positions, ensemble_properties, language="python"):
+        """
+        Computes the gradient vector of the harmonic approximation of the Coulomb potential given the coordinates of all ions in the chain.
+        The returned gradient array follows the same coordinate ordering as the positions array.
+        """
         if language == "python":
             n = ensemble_properties["n"]
             charge = ensemble_properties["charge"]
@@ -221,17 +299,26 @@ class MutualCoulombHarmonicPotential:
             return cpotentials.mutual_coulomb_harmonic_jac(ensemble_properties["charge"], self.hess, self.r0, positions)
 
     def force(self, positions, ensemble_properties, language="python"):
+        """Computes the force on each ion due to this potential"""
         return -self.jac(positions, ensemble_properties, language=language)
 
     def acceleration(self, positions, ensemble_properties, language="python"):
+        """Computes the accleration on each ion due to this potential"""
         return -self.jac(positions, ensemble_properties, language=language) / ensemble_properties["mass"]
 
 class PointChargePotential:
+    """Potential due to a single fixed charge defect in the ring trap."""
+
     def __init__(self, position, charge):
+        """
+        position (units: m) is the (x, y, z) coordinates of the point charge defect
+        charge (units: C) is the charge of the point charge defect
+        """
         self.position = position
         self.charge = charge
     
     def potential(self, positions, ensemble_properties, language="python"):
+        """Computes the potential due to a point charge defect given the positions of all ions in the chain."""
         if language == "python":
             n = ensemble_properties["n"]
             energy = 0
@@ -246,6 +333,10 @@ class PointChargePotential:
                                                       positions)
 
     def jac(self, positions, ensemble_properties, language="python"):
+        """
+        Computes the gradient vector of the potential due to a point charge defect given the coordinates of all ions in the chain.
+        The returned gradient array follows the same coordinate ordering as the positions array.
+        """
         if language == "python":
             n = ensemble_properties["n"]
             grad = np.zeros(3*n)
@@ -262,16 +353,22 @@ class PointChargePotential:
                                                       positions))
 
     def force(self, positions, ensemble_properties, language="python"):
+        """Computes the force on each ion due to this potential"""
         return -self.jac(positions, ensemble_properties, language=language)
 
     def acceleration(self, positions, ensemble_properties, language="python"):
+        """Computes the accleration on each ion due to this potential"""
         return -self.jac(positions, ensemble_properties, language=language) / ensemble_properties["mass"]
 
 class LocalHarmonicPotential1D:
+    """Simple 1d harmonic potential"""
+
     def __init__(self, w):
+        """w (units: rad/s) is the frequency of the harmonic potential."""
         self.w = w
 
     def potential(self, positions, ensemble_properties, language="python"):
+        """Computes the potential due to the harmonic well given the 1D positions of all the ions."""
         if language == "python":
             return 0.5 * ensemble_properties["mass"] * np.sum(self.w * self.w * positions * positions)
         else:
@@ -281,6 +378,7 @@ class LocalHarmonicPotential1D:
             )
     
     def jac(self, positions, ensemble_properties, language="python"):
+        """Computes the gradient vector of the potential due to the harmonic well defect given the 1D coordinates of all ions in the chain."""
         if language == "python":
             return ensemble_properties["mass"] * self.w * self.w * positions
         else:
@@ -289,16 +387,22 @@ class LocalHarmonicPotential1D:
                                                               positions))
     
     def force(self, positions, ensemble_properties, language="python"):
+        """Computes the force on each ion due to this potential"""
         return -self.jac(positions, ensemble_properties, language=language)
     
     def acceleration(self, positions, ensemble_properties, language="python"):
+        """Computes the accleration on each ion due to this potential"""
         return -self.jac(positions, ensemble_properties, language=language) / ensemble_properties["mass"]
 
 class InverseSquarePotential1D:
+    """Simple 1D inverse-square potential with some equilibrium distances"""
+
     def __init__(self, d):
+        """d (units: m) is a list of equilibrium 1D coordinates of each ion."""
         self.d = d
 
     def potential(self, positions, ensemble_properties, language="python"):
+        """Computes the inverse square potential given the 1D positions of all the of the ions."""
         if language == "python":
             n = ensemble_properties["n"]
             energy = 0
@@ -312,6 +416,7 @@ class InverseSquarePotential1D:
                                                            positions)
     
     def jac(self, positions, ensemble_properties, language="python"):
+        """Computes the gradient vector of the inverse-square potential given the 1D coordinates of all ions in the chain."""
         if language == "python":
             n = ensemble_properties["n"]
             grad = np.zeros(n)
@@ -327,7 +432,9 @@ class InverseSquarePotential1D:
                                                               positions))
     
     def force(self, positions, ensemble_properties, language="python"):
+        """Computes the force on each ion due to this potential"""
         return -self.jac(positions, ensemble_properties, language=language)
     
     def acceleration(self, positions, ensemble_properties, language="python"):
+        """Computes the accleration on each ion due to this potential"""
         return -self.jac(positions, ensemble_properties, language=language) / ensemble_properties["mass"]
