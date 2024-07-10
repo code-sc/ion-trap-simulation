@@ -9,8 +9,9 @@ using namespace std;
 
 // physical constants
 const double eps0 = 8.854187817e-12;
+const double k = 1 / (4 * M_PI * eps0);
 
-double harmonic_trap_potential(
+double ring_trap_potential(
         const int n,
         const double mass,
         const double trapRadius,
@@ -28,7 +29,7 @@ double harmonic_trap_potential(
     return energy;
 }
 
-vector<double> harmonic_trap_jac(
+vector<double> ring_trap_jac(
         const int n,
         const double mass,
         const double trapRadius,
@@ -48,10 +49,45 @@ vector<double> harmonic_trap_jac(
     return grad;
 }
 
+double ring_trap_harmonic_potential(
+        const int n,
+        const double mass, 
+        const vector<vector<double> > &hess,
+        const vector<double> &r0,
+        const vector<double> &r
+    )
+{
+    double energy = 0;
+    for (int i = 0; i < n; i++) {
+        energy += 0.5 * mass * hess[i][i] * (r[i] - r0[i]) * (r[i] - r0[i]);
+        energy += 0.5 * mass * hess[n+i][n+i] * (r[n+i] - r0[n+i]) * (r[n+i] - r0[n+i]);
+        energy += 0.5 * mass * hess[2*n+i][2*n+i] * (r[2*n+i] - r0[2*n+i]) * (r[2*n+i] - r0[2*n+i]);
+        energy += mass * hess[i][n+i] * (r[i] - r0[i]) * (r[n+i] - r0[n+i]);
+    }
+    return energy;
+}
+
+vector<double> ring_trap_harmonic_jac(
+        const int n,
+        const double mass, 
+        const vector<vector<double> > &hess,
+        const vector<double> &r0,
+        const vector<double> &r
+    )
+{
+    vector<double> grad(3*n, 0);
+    for (int i = 0; i < n; i++) {
+        grad[i] = mass * hess[i][i] * (r[i] - r0[i]) + mass * hess[i][i+n] * (r[i+n] - r0[i+n]);
+        grad[n+i] = mass * hess[n+i][i] * (r[i] - r0[i]) + mass * hess[n+i][i+n] * (r[i+n] - r0[i+n]);
+        grad[2*n+i] = mass * hess[2*n+i][2*n+i] * (r[2*i+n] - r0[2*i+n]);
+    }
+    return grad;
+}
+
 double mutual_coulomb_potential(
         const int n,
         const double charge,
-        const std::vector<double> &r
+        const vector<double> &r
     )
 {
     double energy = 0;
@@ -70,7 +106,7 @@ double mutual_coulomb_potential(
 vector<double> mutual_coulomb_jac(
         const int n,
         const double charge,
-        const std::vector<double> &r
+        const vector<double> &r
     )
 {
     vector<double> grad(3*n, 0);
@@ -92,10 +128,55 @@ vector<double> mutual_coulomb_jac(
     return grad;
 }
 
+double mutual_coulomb_harmonic_potential(
+        const int n,
+        const double charge,
+        const vector<vector<double> > &d,
+        const vector<vector<double> > &hess,
+        const vector<double> &r0,
+        const vector<double> &r
+    )
+{
+    double halfCharge2 = 0.5 * charge * charge;
+    double energy = 0;
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            if (i != j) energy += (k*charge*charge) / d[i][j];
+            energy += halfCharge2 * hess[i][j] * (r[i] - r0[i]) * (r[j] - r0[j]);
+            energy += halfCharge2 * hess[n+i][n+j] * (r[n+i] - r0[n+i]) * (r[n+j] - r0[n+j]);
+            energy += halfCharge2 * hess[2*n+i][2*n+j] * (r[2*n+i] - r0[2*n+i]) * (r[2*n+j] - r0[2*n+j]);
+            energy += halfCharge2 * hess[i][n+j] * (r[i] - r0[i]) * (r[n+j] - r0[n+j]);
+            energy += halfCharge2 * hess[n+i][2*n+j] * (r[n+i] - r0[n+i]) * (r[2*n+j] - r0[2*n+j]);
+            energy += halfCharge2 * hess[2*n+i][j] * (r[2*n+i] - r0[2*n+i]) * (r[j] - r0[j]);
+        }
+    }
+    return energy;
+}
+
+vector<double> mutual_coulomb_harmonic_jac(
+        const int n,
+        const double charge,
+        const vector<vector<double> > &hess,
+        const vector<double> &r0,
+        const vector<double> &r
+    )
+{
+    int charge2 = charge * charge;
+    vector<double> grad(3*n, 0);
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            grad[i] += charge2 * ( hess[i][j]*(r[j] - r0[j]) + hess[i][n+j]*(r[n+j] - r0[n+j]) + hess[i][2*n+j]*(r[2*n+j] - r0[2*n+j]) );
+            grad[n+i] += charge2 * ( hess[n+i][j]*(r[j] - r0[j]) + hess[n+i][n+j]*(r[n+j] - r0[n+j]) + hess[n+i][2*n+j]*(r[2*n+j] - r0[2*n+j]) );
+            grad[2*n+i] += charge2 * ( hess[2*n+i][j]*(r[j] - r0[j]) + hess[2*n+i][n+j]*(r[n+j] - r0[n+j]) + hess[2*n+i][2*n+j]*(r[2*n+j] - r0[2*n+j]) );
+        }
+    }
+    return grad;
+}
+
 double point_charge_potential(
         const int n,
         const double point_charge,
-        const vector<double> charge_r,
+        const vector<double> &charge_r,
         const double ensemble_charge,
         const vector<double> &r
     )
@@ -114,7 +195,7 @@ double point_charge_potential(
 vector<double> point_charge_jac(
         const int n,
         const double point_charge,
-        const vector<double> charge_r,
+        const vector<double> &charge_r,
         const double ensemble_charge,
         const vector<double> &r
     )
@@ -132,3 +213,63 @@ vector<double> point_charge_jac(
     }
     return grad;
 }
+
+double local_harmonic_potential_1d(
+        const int n,
+        const double mass,
+        const vector<double> &w,
+        const vector<double> &r
+    )
+{
+    double energy = 0;
+    for (int i = 0; i < n; i++)
+        energy += 0.5 * mass * w[i] * w[i] * r[i] * r[i];
+    return energy;
+}
+
+vector<double> local_harmonic_jac_1d(
+        const int n,
+        const double mass,
+        const vector<double> &w,
+        const vector<double> &r
+    )
+{
+    vector<double> grad(n, 0);
+    for (int i = 0; i < n; i++)
+        grad[i] = mass * w[i] * w[i] * r[i];
+    return grad;
+}
+
+double inverse_square_potential_1d(
+        const int n,
+        const vector<double> &d,
+        const double ensemble_charge,
+        const vector<double> &r
+    )
+{
+    double energy = 0;
+    for (int i = 0; i < n; i++)
+        for (int j = i+1; j < n; j++)
+            energy += (ensemble_charge * ensemble_charge) / abs( (r[i] + d[i]) - (r[j] + d[j]) );
+    return energy;
+}
+
+vector<double> inverse_square_jac_1d(
+        const int n,
+        const vector<double> &d,
+        const double ensemble_charge,
+        const vector<double> &r
+    )
+{
+    vector<double> grad(n, 0);
+    double mag;
+    for (int i = 0; i < n; i++) {
+        for (int j = i+1; j < n; j++) {
+            mag = (ensemble_charge * ensemble_charge) / pow( (r[i] + d[i]) - (r[j] + d[j]), 2);
+            grad[i] += ( (r[i] + d[i] > r[j] + d[j]) ? -1 : 1) * mag;
+            grad[j] += ( (r[i] + d[i] > r[j] + d[j]) ? 1 : -1) * mag;
+        }
+    }
+    return grad;
+}
+
