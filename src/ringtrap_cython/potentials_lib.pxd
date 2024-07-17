@@ -72,13 +72,13 @@ cdef extern from "potentials_lib.h":
     );
     double local_harmonic_potential_1d(
         const int n,
-        const double mass,
+        const vector[double]& mass,
         const vector[double]& w,
         const vector[double]& r
     );
     vector[double] local_harmonic_jac_1d(
         const int n,
-        const double mass,
+        const vector[double]& mass,
         const vector[double]& w,
         const vector[double]& r
     );

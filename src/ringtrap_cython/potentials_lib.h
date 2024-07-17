@@ -85,14 +85,14 @@ std::vector<double> point_charge_jac(
 
 double local_harmonic_potential_1d(
     const int n,
-    const double mass,
+    const std::vector<double> &mass,
     const std::vector<double> &w,
     const std::vector<double> &r
     );
 
 std::vector<double> local_harmonic_jac_1d(
     const int n,
-    const double mass,
+    const std::vector<double> &mass,
     const std::vector<double> &w,
     const std::vector<double> &r
     );

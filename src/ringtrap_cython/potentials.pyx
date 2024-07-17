@@ -64,13 +64,13 @@ def point_charge_jac(double point_charge, vector[double] charge_r, double ensemb
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def local_harmonic_potential_1d(double mass, vector[double] w, vector[double] r):
+def local_harmonic_potential_1d(vector[double] mass, vector[double] w, vector[double] r):
     cdef n = r.size()
     return potentials_lib.local_harmonic_potential_1d(n, mass, w, r)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def local_harmonic_jac_1d(double mass, vector[double] w, vector[double] r):
+def local_harmonic_jac_1d(vector[double] mass, vector[double] w, vector[double] r):
     cdef n = r.size()
     return potentials_lib.local_harmonic_jac_1d(n, mass, w, r)
 

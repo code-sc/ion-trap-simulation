@@ -216,27 +216,27 @@ vector<double> point_charge_jac(
 
 double local_harmonic_potential_1d(
         const int n,
-        const double mass,
+        const vector<double> &mass,
         const vector<double> &w,
         const vector<double> &r
     )
 {
     double energy = 0;
     for (int i = 0; i < n; i++)
-        energy += 0.5 * mass * w[i] * w[i] * r[i] * r[i];
+        energy += 0.5 * mass[i] * w[i] * w[i] * r[i] * r[i];
     return energy;
 }
 
 vector<double> local_harmonic_jac_1d(
         const int n,
-        const double mass,
+        const vector<double> &mass,
         const vector<double> &w,
         const vector<double> &r
     )
 {
     vector<double> grad(n, 0);
     for (int i = 0; i < n; i++)
-        grad[i] = mass * w[i] * w[i] * r[i];
+        grad[i] = mass[i] * w[i] * w[i] * r[i];
     return grad;
 }
 
