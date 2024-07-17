@@ -370,7 +370,7 @@ class LocalHarmonicPotential1D:
     def potential(self, positions, ensemble_properties, language="python"):
         """Computes the potential due to the harmonic well given the 1D positions of all the ions."""
         if language == "python":
-            return 0.5 * ensemble_properties["mass"] * np.sum(self.w * self.w * positions * positions)
+            return 0.5 * np.sum(ensemble_properties["mass"] * self.w * self.w * positions * positions)
         else:
             return cpotentials.local_harmonic_potential_1d(ensemble_properties["mass"],
                                                            self.w,
