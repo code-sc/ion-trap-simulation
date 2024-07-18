@@ -408,7 +408,7 @@ class InverseSquarePotential1D:
             energy = 0
             for i in range(n):
                 for j in range(i+1, n):
-                    energy += (ensemble_properties["charge"] ** 2) / np.abs( (positions[i] + self.d[i]) - (positions[j] + self.d[j]) )
+                    energy += (ensemble_properties["charge"][i] * ensemble_properties["charge"][j]) / np.abs( (positions[i] + self.d[i]) - (positions[j] + self.d[j]) )
             return energy
         else:
             return cpotentials.inverse_square_potential_1d(self.d,
@@ -422,7 +422,7 @@ class InverseSquarePotential1D:
             grad = np.zeros(n)
             for i in range(n):
                 for j in range(i+1, n):
-                    mag = (ensemble_properties["charge"] ** 2) / (( (positions[i] + self.d[i]) - (positions[j] + self.d[j]) ) ** 2)
+                    mag = (ensemble_properties["charge"][i]*ensemble_properties["charge"][j]) / (( (positions[i] + self.d[i]) - (positions[j] + self.d[j]) ) ** 2)
                     grad[i] += (-1 if (positions[i] + self.d[i] > positions[j] + self.d[j]) else 1) * mag
                     grad[j] += (1 if (positions[i] + self.d[i] > positions[j] + self.d[j]) else -1) * mag
             return grad
