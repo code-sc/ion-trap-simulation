@@ -100,14 +100,14 @@ std::vector<double> local_harmonic_jac_1d(
 double inverse_square_potential_1d(
     const int n,
     const std::vector<double> &d,
-    const double ensemble_charge,
+    const std::vector<double> &ensemble_charge,
     const std::vector<double> &r
     );
 
 std::vector<double> inverse_square_jac_1d(
     const int n,
     const std::vector<double> &d,
-    const double ensemble_charge,
+    const std::vector<double> &ensemble_charge,
     const std::vector<double> &r
     );
 

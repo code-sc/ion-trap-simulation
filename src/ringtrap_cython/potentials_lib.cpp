@@ -241,21 +241,21 @@ std::vector<double> local_harmonic_jac_1d(
 double inverse_square_potential_1d(
         const int n,
         const std::vector<double> &d,
-        const double ensemble_charge,
+        const std::vector<double> &ensemble_charge,
         const std::vector<double> &r
     )
 {
     double energy = 0;
     for (int i = 0; i < n; i++)
         for (int j = i+1; j < n; j++)
-            energy += (ensemble_charge * ensemble_charge) / abs( (r[i] + d[i]) - (r[j] + d[j]) );
+            energy += (ensemble_charge[i] * ensemble_charge[j]) / abs( (r[i] + d[i]) - (r[j] + d[j]) );
     return energy;
 }
 
 std::vector<double> inverse_square_jac_1d(
         const int n,
         const std::vector<double> &d,
-        const double ensemble_charge,
+        const std::vector<double> &ensemble_charge,
         const std::vector<double> &r
     )
 {
@@ -263,7 +263,7 @@ std::vector<double> inverse_square_jac_1d(
     double mag;
     for (int i = 0; i < n; i++) {
         for (int j = i+1; j < n; j++) {
-            mag = (ensemble_charge * ensemble_charge) / pow( (r[i] + d[i]) - (r[j] + d[j]), 2);
+            mag = (ensemble_charge[i] * ensemble_charge[j]) / pow( (r[i] + d[i]) - (r[j] + d[j]), 2);
             grad[i] += ( (r[i] + d[i] > r[j] + d[j]) ? -1 : 1) * mag;
             grad[j] += ( (r[i] + d[i] > r[j] + d[j]) ? 1 : -1) * mag;
         }

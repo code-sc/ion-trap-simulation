@@ -85,12 +85,12 @@ cdef extern from "potentials_lib.h":
     double inverse_square_potential_1d(
         const int n,
         const vector[double]& d,
-        const double ensemble_charge,
+        const vector[double]& ensemble_charge,
         const vector[double]& r
     );
     vector[double] inverse_square_jac_1d(
         const int n,
         const vector[double]& d,
-        const double ensemble_charge,
+        const vector[double]& ensemble_charge,
         const vector[double]& r
     );

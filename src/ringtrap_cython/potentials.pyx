@@ -76,12 +76,12 @@ def local_harmonic_jac_1d(vector[double] mass, vector[double] w, vector[double] 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def inverse_square_potential_1d(vector[double] d, double ensemble_charge, vector[double] r):
+def inverse_square_potential_1d(vector[double] d, vector[double] ensemble_charge, vector[double] r):
     cdef n = r.size()
     return potentials_lib.inverse_square_potential_1d(n, d, ensemble_charge, r)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def inverse_square_jac_1d(vector[double] d, double ensemble_charge, vector[double] r):
+def inverse_square_jac_1d(vector[double] d, vector[double] ensemble_charge, vector[double] r):
     cdef n = r.size()
     return potentials_lib.inverse_square_jac_1d(n, d, ensemble_charge, r)
