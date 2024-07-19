@@ -33,12 +33,12 @@ cdef extern from "potentials_lib.h":
     );
     double mutual_coulomb_potential(
         const int n,
-        const double charge,
+        const vector[double]& charge,
         const vector[double]& r
     );
     vector[double] mutual_coulomb_jac(
         const int n,
-        const double charge,
+        const vector[double]& charge,
         const vector[double]& r
     );
     double mutual_coulomb_harmonic_potential(

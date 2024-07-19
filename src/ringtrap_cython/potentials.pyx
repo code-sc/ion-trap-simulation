@@ -28,13 +28,13 @@ def ring_trap_harmonic_jac(double mass, vector[vector[double]] hess, vector[doub
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def mutual_coulomb_potential(double charge, vector[double] r):
+def mutual_coulomb_potential(vector[double] charge, vector[double] r):
     cdef n = r.size() // 3
     return potentials_lib.mutual_coulomb_potential(n, charge, r)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def mutual_coulomb_jac(double charge, vector[double] r):
+def mutual_coulomb_jac(vector[double] charge, vector[double] r):
     cdef n = r.size() // 3
     return potentials_lib.mutual_coulomb_jac(n, charge, r)
 

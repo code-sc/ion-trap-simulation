@@ -40,13 +40,13 @@ std::vector<double> ring_trap_harmonic_jac(
 
 double mutual_coulomb_potential(
         const int n,
-        const double charge,
+        const std::vector<double> &charge,
         const std::vector<double> &r
     );
 
 std::vector<double> mutual_coulomb_jac(
         const int n,
-        const double charge,
+        const std::vector<double> &charge,
         const std::vector<double> &r
     );
 

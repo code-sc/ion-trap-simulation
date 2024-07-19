@@ -84,7 +84,7 @@ std::vector<double> ring_trap_harmonic_jac(
 
 double mutual_coulomb_potential(
         const int n,
-        const double charge,
+        const std::vector<double> &charge,
         const std::vector<double> &r
     )
 {
@@ -95,7 +95,7 @@ double mutual_coulomb_potential(
                             (r[i]-r[j])*(r[i]-r[j])
                             + (r[n+i]-r[n+j])*(r[n+i]-r[n+j])
                             + (r[2*n+i]-r[2*n+j])*(r[2*n+i]-r[2*n+j]) );
-            energy += ( (charge*charge) / (4*M_PI*eps0) ) * (1 / dist);
+            energy += ( (charge[i]*charge[j]) / (4*M_PI*eps0) ) * (1 / dist);
         }
     }
     return energy;
@@ -103,7 +103,7 @@ double mutual_coulomb_potential(
 
 std::vector<double> mutual_coulomb_jac(
         const int n,
-        const double charge,
+        const std::vector<double> &charge,
         const std::vector<double> &r
     )
 {
@@ -114,7 +114,7 @@ std::vector<double> mutual_coulomb_jac(
                             (r[i]-r[j])*(r[i]-r[j])
                             + (r[n+i]-r[n+j])*(r[n+i]-r[n+j])
                             + (r[2*n+i]-r[2*n+j])*(r[2*n+i]-r[2*n+j]) );
-            double coulomb = ( (charge*charge) / (4*M_PI*eps0) ) * (1 / (dist * dist));
+            double coulomb = ( (charge[i]*charge[j]) / (4*M_PI*eps0) ) * (1 / (dist * dist));
             grad[i] -= coulomb * ((r[i] - r[j]) / dist);
             grad[n+i] -= coulomb * ((r[n+i] - r[n+j]) / dist);
             grad[2*n+i] -= coulomb * ((r[2*n+i] - r[2*n+j]) / dist);
