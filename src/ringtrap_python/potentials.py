@@ -164,7 +164,7 @@ class MutualCoulombPotential:
                 for j in range(i+1, n):
                     ri = positions[i::n]
                     rj = positions[j::n]
-                    energy += ((ensemble_properties["charge"] ** 2) / (4*np.pi*eps0)) * (1 / np.linalg.norm(ri - rj))
+                    energy += ((ensemble_properties["charge"][i] * ensemble_properties["charge"][j]) / (4*np.pi*eps0)) * (1 / np.linalg.norm(ri - rj))
             return energy
         else:
             return cpotentials.mutual_coulomb_potential(ensemble_properties["charge"], positions)
@@ -182,7 +182,7 @@ class MutualCoulombPotential:
                 for j in range(i+1,n):
                     ri = positions[i::n]
                     rj = positions[j::n]
-                    coulomb = ((ensemble_properties["charge"] ** 2) / (4*np.pi*eps0)) * (1 / (np.linalg.norm(ri - rj) ** 2))
+                    coulomb = ((ensemble_properties["charge"][i] * ensemble_properties["charge"][j]) / (4*np.pi*eps0)) * (1 / (np.linalg.norm(ri - rj) ** 2))
                     dr = (ri - rj) / np.linalg.norm(ri - rj)
                     grad[i::n] -= coulomb * dr 
                     grad[j::n] += coulomb * dr
@@ -196,7 +196,11 @@ class MutualCoulombPotential:
 
     def acceleration(self, positions, ensemble_properties, language="python"):
         """Computes the accleration on each ion due to this potential"""
-        return -self.jac(positions, ensemble_properties, language=language) / ensemble_properties["mass"]
+        temp = -self.jac(positions, ensemble_properties, language=language)
+        n = ensemble_properties["n"]
+        for i in range(n):
+            temp[i::n] /= ensemble_properties["mass"][i]
+        return temp
 
 class MutualCoulombHarmonicPotential:
     """
