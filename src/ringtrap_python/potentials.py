@@ -164,7 +164,7 @@ class MutualCoulombPotential:
                 for j in range(i+1, n):
                     ri = positions[i::n]
                     rj = positions[j::n]
-                    energy += ((ensemble_properties["charge"][i] * ensemble_properties["charge"][j]) / (4*np.pi*eps0)) * (1 / np.linalg.norm(ri - rj))
+                    energy += (ensemble_properties["charge"][i] * ensemble_properties["charge"][j] * k) / np.linalg.norm(ri - rj)
             return energy
         else:
             return cpotentials.mutual_coulomb_potential(ensemble_properties["charge"], positions)
@@ -182,7 +182,7 @@ class MutualCoulombPotential:
                 for j in range(i+1,n):
                     ri = positions[i::n]
                     rj = positions[j::n]
-                    coulomb = ((ensemble_properties["charge"][i] * ensemble_properties["charge"][j]) / (4*np.pi*eps0)) * (1 / (np.linalg.norm(ri - rj) ** 2))
+                    coulomb = (ensemble_properties["charge"][i] * ensemble_properties["charge"][j] * k) / (np.linalg.norm(ri - rj) ** 2)
                     dr = (ri - rj) / np.linalg.norm(ri - rj)
                     grad[i::n] -= coulomb * dr 
                     grad[j::n] += coulomb * dr
@@ -442,3 +442,167 @@ class InverseSquarePotential1D:
     def acceleration(self, positions, ensemble_properties, language="python"):
         """Computes the accleration on each ion due to this potential"""
         return -self.jac(positions, ensemble_properties, language=language) / ensemble_properties["mass"]
+    
+class LinearQuadrupolePseudoPotential:
+    """This is the Pseudopotential due to a Linear Quadrupole trap"""
+
+    def __init__(self,alpha,Vend,Vrf,w,r0,mass):
+        """
+        alpha   : float between -1 to 0
+        Vend    : Endcap DC potential
+        Vrf     : RF potential magnitude
+        w       : ANgular frequency of the RF field
+        r0      : Distance from axis to rod surface
+        mass    : Array of masses of particles
+        """
+        self.alpha = alpha
+        self.Vend = Vend
+        self.Vrf = Vrf
+        self.w = w
+        self.r0 = r0
+        self.a = (6.4e-19*alpha*Vend/(w*r0*r0)) / mass
+        self.q = (3.2e-19*Vrf/(w*r0*r0)) / mass
+        #self.a = np.ones(len(mass))*-0.001
+        #self.q = np.ones(len(mass))*0.4
+
+        #print("a : ",self.a)
+        #print("q : ",self.q)
+
+    def contourPotential(self, X,Y,Z,mass):
+        """Computes the potential energy for the given coordinates."""
+        energy = 0
+        energy += mass * self.w * self.w * (self.a[0] + self.q[0] *self.q[0]/2) * (X*X + Y*Y) / 8 #TODO : Double check if X^2 + Y^2 or X^2 * Y^2
+        #print("A : ",energy[0])
+        energy -= mass * self.w * self.w * self.a[0] * Z*Z/4
+        #print("B : ",mass * self.w * self.w * self.a[0] * Z*Z/4)
+        #print("Energy : ",energy[0])
+        return energy          
+
+    def potential(self, positions, ensemble_properties, language="python"):
+        """Computes the potential energy due to the Linear Quadrupole Pseudo potential for the given configuration of ions."""
+        if language == "python":
+            n = ensemble_properties["n"]
+            energy = 0
+            for i in range(n):
+                energy += ensemble_properties["mass"][i] * self.w * self.w * (self.a[i] + self.q[i] *self.q[i]/2) * (positions[i]*positions[i] + positions[n+i] * positions[n+i]) / 8
+                energy -= ensemble_properties["mass"][i] * self.w * self.w * self.a[i] * positions[i+2*n] * positions[i+2*n]/4
+            return energy          
+        else:
+            print("Not yet implemented")
+            return
+
+    def jac(self, positions, ensemble_properties, language="python"):
+        if language == "python":
+            n = ensemble_properties["n"]
+            A = ensemble_properties["mass"] * self.w * self.w * (self.a + self.q*self.q/2) / 4
+            B = -1 * ensemble_properties["mass"] * self.w * self.w * self.a / 2
+            grad = np.zeros(3*n)
+            grad[:n] = A * positions[:n]
+            grad[n:2*n] = A * positions[n:2*n]
+            grad[2*n:3*n] = B * positions[2*n:3*n]
+            return grad            
+        else:
+            print("Not yet implemented")
+            return
+
+    def force(self, positions, ensemble_properties, language="python"):
+        """Computes the force on each ion due to this potential"""
+        return -self.jac(positions, ensemble_properties, language=language)
+
+    def acceleration(self, positions, ensemble_properties, language="python"):
+        """Computes the accleration on each ion due to this potential"""
+        temp = -self.jac(positions, ensemble_properties, language=language)
+        n = ensemble_properties["n"]
+        for i in range(n):
+            temp[i::n] /= ensemble_properties["mass"][i]
+        return temp
+
+class ParameterisedLinearQuadrupolePseudoPotential:
+    """
+    Defines the potential energy 
+        f(x,y,z) = A(x^2 + y^2) - Bz^2
+    """
+
+    def __init__(self,A,B):
+        self.A = A
+        self.B = B
+    
+    def contourPotential(self,x,y,z):
+        """Returns the potential energy of the input coordinates"""
+        return self.A *(x*x + y*y) - self.B*z*z
+    
+    def potential(self, positions, ensemble_properties, language="python"):
+        """Returns the potential energy for the given configuration of atoms"""
+        n = ensemble_properties["n"]
+        energy = 0
+        for i in range(n):
+            energy += (self.A * (positions[i] * positions[i] + positions[n+i] * positions[n+i]) + self.B * positions[i+2*n] * positions[i+2*n])
+        return energy
+    
+    def jac(self, positions, ensemble_properties, language="python"):
+        """Returns the jacobian of the potential"""
+        n = ensemble_properties["n"]
+        grad = np.zeros(3*n)
+        grad[:2*n] = 2*self.A*positions[:2*n]
+        grad[2*n:] = -2*self.B*positions[2*n:]
+        return grad
+    
+    def force(self, positions, ensemble_properties, language="python"):
+        """Computes the force on each ion due to this potential"""
+        return -self.jac(positions, ensemble_properties, language=language)
+    
+    def acceleration(self, positions, ensemble_properties, language="python"):
+        """Computes the accleration on each ion due to this potential"""
+        return -self.jac(positions, ensemble_properties, language=language) / ensemble_properties["mass"]
+
+class TimeDependentLinearQuadrupolePotential:
+    """
+    This is for the time dependent potential by a linear quadrupole trap
+    r0      : Radial distance from the center to the surface of the electrode
+    Wz      : The oscillation frequency about the z axis
+    Wrf     : The angular frequency for the RF
+    Vdc     : DC endcap voltage
+    Vrf     : Peak RF voltage
+    theta   : The angular orientation of the electrode in the 1st quadrant
+    """
+    def __init__(self,r0,Wz,Vdc,Vrf,theta,Wrf):
+        self.r0 = r0
+        self.Wz = Wz
+        self.Wrf = Wrf
+        self.Vdc = Vdc
+        self.Vrf = Vrf
+        self.C1 = np.cos(2*theta)
+        self.C2 = np.sin(2*theta)
+
+    def contourPotential(self, x, y, z, mass, q, t):
+        """Returns the potential energy of the input coordinates and time"""
+        energy = q*(self.Vdc - self.Vrf*np.cos(self.Wrf*t))((x*x - y*y)*self.C1 + 2*x*y*self.C2)/(2*self.r0*self.r0)
+        energy -= mass*self.Wz*self.Wz*((x*x+y*y)/2 - z*z)/2
+        return energy
+
+    def potential(self, positions, ensemble_properties, t, language="python"):
+        """Computes the potential energy of the system for the given positions of atoms and time"""
+        n = ensemble_properties["n"]
+        energy = ensemble_properties["charge"]*(self.Vdc - self.Vrf*np.cos(self.Wrf*t))((positions[:n]*positions[:n] - positions[n:2*n]*positions[n:2*n])*self.C1 + 2*positions[:n]*positions[n:2*n]*self.C2)/(2*self.r0*self.r0)
+        energy -= ensemble_properties["mass"]*self.Wz*self.Wz*((positions[:n]*positions[:n]+positions[n:2*n]*positions[n:2*n])/2 - positions[2*n:]*positions[2*n:])/2
+        return np.sum(energy)
+
+
+    def jac(self, positions, ensemble_properties, t, language="python"):
+        """Returns the jacobian of the potential for each of the atoms a the given time"""
+        n = ensemble_properties["n"]
+        A = ensemble_properties["charge"]*(self.Vdc - self.Vrf*np.cos(self.Wrf*t))/(2*self.r0*self.r0)
+        B = ensemble_properties["mass"]*self.Wz*self.Wz/2
+        grad = np.zeros(3*n)
+        grad[:n] = 2*A*positions[:n]*self.C1 + 2*positions[n:2*n]*self.C2 - B*positions[:n]
+        grad[n:2*n] = -2*A*positions[n:2*n]*self.C1 + 2*positions[:n]*self.C2 - B*positions[n:2*n]
+        grad[2*n:] = 2*B*positions[2*n:]
+        return grad
+
+    def force(self, positions, ensemble_properties, t, language="python"):
+        """Returns the force for each of the atoms at the given time"""
+        return -self.jac(self, positions, ensemble_properties, t, language=language)
+    
+    def acceleration(self, positions, ensemble_properties, t, language="python"):
+        """Returns the acceleration of each of the atoms at the given time"""
+        return -self.jac(self, positions, ensemble_properties, t, language=language)/ensemble_properties["mass"]

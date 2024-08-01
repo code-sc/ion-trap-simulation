@@ -7,3 +7,5 @@ ion_trap_ring.cpp
 potentials.cpp
 
 *.so
+*.npz
+Simulations.ipynb

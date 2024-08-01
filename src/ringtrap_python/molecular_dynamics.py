@@ -1,6 +1,7 @@
 import numpy as np
+from helpertools import printProgressBar
 
-def sim_leapfrog(T, dt, r_0, v_0, ensemble_properties, potentials=[], language="python", dims=3):
+def sim_leapfrog(T, dt, r_0, v_0, ensemble_properties, potentials=[], language="python", dims=3,debug = False):
     """
     Use the leapfrog algorithm to simulate the positions and velocity of the ions over time.
     T (units: s) is the total duration of the simulation
@@ -24,6 +25,8 @@ def sim_leapfrog(T, dt, r_0, v_0, ensemble_properties, potentials=[], language="
         a_sim[0] += potential.acceleration(r_sim[0], ensemble_properties, language=language)
 
     for i in range(n_tsteps):
+        if debug:
+            printProgressBar(i,n_tsteps,length=80)
         r_sim[i+1] = r_sim[i] + dt*v_sim[i] + 0.5*dt*dt*a_sim[i]
         for potential in potentials:
             a_sim[i+1] += potential.acceleration(r_sim[i+1], ensemble_properties, language=language)
